@@ -1,0 +1,49 @@
+import 'package:flutter_application_1/consts/consts.dart';
+
+class FavouriteScreen extends StatefulWidget {
+  const FavouriteScreen({super.key});
+
+  @override
+  State<FavouriteScreen> createState() => _FavouriteScreenState();
+}
+
+class _FavouriteScreenState extends State<FavouriteScreen> {
+  @override
+  Widget build(BuildContext context) {
+    final favorites = FavoritesManager().favorites;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text("Favorites", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.black,
+      ),
+      body: favorites.isEmpty
+          ? const Center(
+              child: Text(
+                "No favorites yet",
+                style: TextStyle(color: Colors.white, fontSize: 20),
+              ),
+            )
+          : ListView.builder(
+              itemCount: favorites.length,
+              itemBuilder: (context, index) {
+                final stop = favorites[index];
+                return Card(
+                  color: const Color(0xFF212121),
+                  margin: const EdgeInsets.symmetric(
+                      vertical: 8.0, horizontal: 16.0),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.teal,
+                      child: Text(stop["stopNumber"] ?? ""),
+                    ),
+                    title: Text(stop["stopName"] ?? "",
+                        style: const TextStyle(color: Colors.white)),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
