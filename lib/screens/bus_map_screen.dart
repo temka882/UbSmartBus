@@ -12,58 +12,74 @@ class BusMapScreen extends StatefulWidget {
 class _BusMapScreenState extends State<BusMapScreen> {
   late GoogleMapController _mapController;
   BitmapDescriptor? _busIcon;
+  BitmapDescriptor? _stopIcon; // For custom bus stop icon
   Set<Polyline> _polylines = {};
   List<int> _busIndices = [0, 0]; // Track positions of 2 buses
   List<LatLng> _busPositions = []; // Positions of 2 buses
 
-  // Bus stops
-  final List<LatLng> _busStops = [
-    LatLng(47.928312, 106.907537),
-    LatLng(47.933308, 106.906227),
-    LatLng(47.937506, 106.909450),
-    LatLng(47.939502, 106.912726),
-    LatLng(47.935011, 106.915998),
-    LatLng(47.931219, 106.916689),
+  // 🚏 Bus Stops with Information
+  final List<Map<String, dynamic>> _busStops = [
+    {"name": "Stop 1 - Main Square", "position": LatLng(47.928312, 106.907537)},
+    {
+      "name": "Stop 2 - Central Market",
+      "position": LatLng(47.933308, 106.906227),
+    },
+    {"name": "Stop 3 - University", "position": LatLng(47.937506, 106.909450)},
+    {"name": "Stop 4 - Mall", "position": LatLng(47.939502, 106.912726)},
+    {"name": "Stop 5 - Park", "position": LatLng(47.935011, 106.915998)},
+    {
+      "name": "Stop 6 - Train Station",
+      "position": LatLng(47.931219, 106.916689),
+    },
   ];
 
   @override
   void initState() {
     super.initState();
     _loadBusIcon();
+    _loadStopIcon(); // Load custom bus stop icon
     _fetchRoutePolylines();
     _initializeBusPositions();
     _simulateBusMovement();
   }
 
+  // Loading bus icon from assets
   Future<void> _loadBusIcon() async {
     _busIcon = await BitmapDescriptor.fromAssetImage(
       ImageConfiguration(),
-      'assets/images/8541652_bus_alt_icon.png', // Correct path
+      'assets/images/bus_icon.png', // Your custom bus icon
+    );
+    setState(() {});
+  }
+
+  // Loading bus stop icon from assets
+  Future<void> _loadStopIcon() async {
+    _stopIcon = await BitmapDescriptor.fromAssetImage(
+      ImageConfiguration(),
+      'assets/images/bus_stop_icon.png', // Your custom bus stop icon
     );
     setState(() {});
   }
 
   void _initializeBusPositions() {
     _busPositions = [
-      _busStops[0],
-      _busStops[2],
-    ]; // Start buses at different stops
+      _busStops[0]["position"] as LatLng,
+      _busStops[2]["position"] as LatLng,
+    ];
   }
 
   void _simulateBusMovement() {
-    // Simulate movement for Bus 1
     Timer.periodic(Duration(seconds: 3), (timer) {
       setState(() {
         _busIndices[0] = (_busIndices[0] + 1) % _busStops.length;
-        _busPositions[0] = _busStops[_busIndices[0]];
+        _busPositions[0] = _busStops[_busIndices[0]]["position"] as LatLng;
       });
     });
 
-    // Simulate movement for Bus 2
     Timer.periodic(Duration(seconds: 5), (timer) {
       setState(() {
         _busIndices[1] = (_busIndices[1] + 1) % _busStops.length;
-        _busPositions[1] = _busStops[_busIndices[1]];
+        _busPositions[1] = _busStops[_busIndices[1]]["position"] as LatLng;
       });
     });
   }
@@ -73,11 +89,11 @@ class _BusMapScreenState extends State<BusMapScreen> {
     _polylines.clear();
 
     for (int i = 0; i < _busStops.length; i++) {
-      int nextIndex = (i + 1) % _busStops.length; // Loop back to first stop
+      int nextIndex = (i + 1) % _busStops.length;
 
       final response = await http.get(
         Uri.parse(
-          'https://maps.googleapis.com/maps/api/directions/json?origin=${_busStops[i].latitude},${_busStops[i].longitude}&destination=${_busStops[nextIndex].latitude},${_busStops[nextIndex].longitude}&mode=driving&key=$apiKey',
+          'https://maps.googleapis.com/maps/api/directions/json?origin=${_busStops[i]["position"].latitude},${_busStops[i]["position"].longitude}&destination=${_busStops[nextIndex]["position"].latitude},${_busStops[nextIndex]["position"].longitude}&mode=driving&key=$apiKey',
         ),
       );
 
@@ -85,7 +101,7 @@ class _BusMapScreenState extends State<BusMapScreen> {
         final data = jsonDecode(response.body);
         if (data["routes"].isEmpty) {
           print(
-            "No route found for ${_busStops[i]} -> ${_busStops[nextIndex]}",
+            "No route found for ${_busStops[i]["name"]} -> ${_busStops[nextIndex]["name"]}",
           );
           continue;
         }
@@ -139,33 +155,64 @@ class _BusMapScreenState extends State<BusMapScreen> {
     return points;
   }
 
+  void _showStopInfo(String stopName) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(stopName),
+          content: Text("Details of $stopName"),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: GoogleMap(
-        initialCameraPosition: CameraPosition(target: _busStops[0], zoom: 15),
+        initialCameraPosition: CameraPosition(
+          target: _busStops[0]["position"] as LatLng,
+          zoom: 15,
+        ),
         onMapCreated: (controller) {
           _mapController = controller;
         },
         markers: {
+          // 🚏 Markers for Bus Stops (Clickable)
           ..._busStops.map(
             (stop) => Marker(
-              markerId: MarkerId(stop.toString()),
-              position: stop,
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueAzure,
-              ),
+              markerId: MarkerId(stop["name"]),
+              position: stop["position"] as LatLng,
+              infoWindow: InfoWindow(title: stop["name"]),
+              onTap: () {
+                _showStopInfo(stop["name"]);
+              },
+              icon:
+                  _stopIcon ??
+                  BitmapDescriptor.defaultMarker, // Custom icon for bus stop
             ),
           ),
+
+          // 🚌 Markers for Buses (Ensure custom bus icon is set)
           if (_busIcon != null)
             ..._busPositions.asMap().entries.map(
               (entry) => Marker(
                 markerId: MarkerId("bus_${entry.key}"),
                 position: entry.value,
-                icon: _busIcon!,
+                icon: _busIcon!, // Use custom bus icon
                 infoWindow: InfoWindow(
                   title: "Bus ${entry.key + 1}",
-                  snippet: "Next Stop: Bus Stop ${_busIndices[entry.key] + 1}",
+                  snippet:
+                      "Next Stop: ${_busStops[_busIndices[entry.key]]["name"]}",
                 ),
               ),
             ),
@@ -175,6 +222,9 @@ class _BusMapScreenState extends State<BusMapScreen> {
     );
   }
 }
+
+
+
 
 //pubspec.yaml
 //google_maps_flutter: ^2.10.0
