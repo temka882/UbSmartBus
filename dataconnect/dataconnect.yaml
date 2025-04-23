@@ -1,0 +1,12 @@
+specVersion: "v1"
+serviceId: "ubsmartbus-master"
+location: "us-central1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "fdcdb"
+      cloudSql:
+        instanceId: "ubsmartbus-master-fdc"
+      # schemaValidation: "COMPATIBLE"
+connectorDirs: ["./connector"]

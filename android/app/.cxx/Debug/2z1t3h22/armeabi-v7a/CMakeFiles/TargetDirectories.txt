@@ -1,0 +1,2 @@
+D:/UbSmartBus-master/android/app/.cxx/Debug/2z1t3h22/armeabi-v7a/CMakeFiles/edit_cache.dir
+D:/UbSmartBus-master/android/app/.cxx/Debug/2z1t3h22/armeabi-v7a/CMakeFiles/rebuild_cache.dir
